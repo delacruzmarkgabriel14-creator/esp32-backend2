@@ -1,120 +1,54 @@
 body {
-    background: #000;
-    color: #fff;
     font-family: Arial, sans-serif;
-    margin: 0;
     padding: 20px;
+    background-color: #f4f4f4;
 }
-
-.header-title {
+h1 {
     text-align: center;
-    margin-bottom: 30px;
 }
-
-.sensor-container {
+.container {
     display: flex;
     justify-content: center;
-    gap: 25px;
-    margin-bottom: 40px;
+    gap: 40px;
+    margin-top: 30px;
 }
-
-.sensor-card {
-    background: #111;
-    width: 260px;
+.box {
     padding: 15px;
+    border: 1px solid #ccc;
+    width: 120px;
+    background-color: #fff;
     border-radius: 10px;
-    display: flex;
-    gap: 15px;
+    text-align: center;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
 }
-
-.bar-wrapper {
-    width: 15px;
-    height: 150px;
-    background: #222;
-    border-radius: 10px;
+.bar-container {
+    width: 40px;
+    height: 200px;
+    border: 2px solid #ccc;
+    position: relative;
+    margin: auto;
+    border-radius: 5px;
+    background-color: #e6e6e6;
     overflow: hidden;
 }
-
-.bar {
+.bar-fill {
+    position: absolute;
+    bottom: 0;
     width: 100%;
-    background: #00aaff;
-    height: 0%;
-    transition: height 0.5s ease;
+    height: 0;
+    background-color: green;
+    transition: height 0.5s, background-color 0.5s;
 }
-
-.hum-bar {
-    background: #00ffc8;
+.value {
+    margin-top: 8px;
+    font-weight: bold;
 }
-
-.sensor-info h2 {
-    margin: 0;
-    font-size: 18px;
+.status {
+    margin-top: 5px;
+    font-weight: bold;
 }
-
-.sensor-value {
-    font-size: 26px;
-    margin: 5px 0;
-}
-
-.timestamp {
-    font-size: 12px;
-    color: #888;
-}
-
-.limit-indicator {
-    margin-top: 10px;
-    font-size: 14px;
-    color: #ff5555;
-}
-
-.fan-status-container {
+.fan-status {
     text-align: center;
-    margin-bottom: 40px;
+    font-size: 1.2em;
+    margin-top: 20px;
 }
-
-.fan-icon {
-    width: 50px;
-    height: 50px;
-    margin: auto;
-    border-radius: 50%;
-    margin-bottom: 10px;
-}
-
-.fan-icon.off {
-    background: #550000;
-}
-
-.fan-icon.on {
-    background: #00aa00;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.fan-text {
-    font-size: 20px;
-}
-
-.log-title {
-    margin-top: 40px;
-    margin-bottom: 10px;
-}
-
-.log-box {
-    background: #111;
-    height: 200px;
-    overflow-y: auto;
-    border-radius: 8px;
-    padding: 15px;
-}
-
-.log-entry {
-    margin: 5px 0;
-}
-
-.log-entry.normal { color: #d0d0d0; }
-.log-entry.exceeded { color: #ff4444; }
-.log-entry.on { color: #44ff44; }
-.log-entry.off { color: #ffaa00; }
