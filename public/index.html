@@ -26,13 +26,15 @@ function updateData() {
     fetch("/api/data")
         .then(res => res.json())
         .then(data => {
-            document.getElementById("temp").innerText = data.temperature ?? "No data";
-            document.getElementById("hum").innerText = data.humidity ?? "No data";
+            // Format temperature and humidity to 2 decimal places
+            document.getElementById("temp").innerText = data.temperature !== null ? data.temperature.toFixed(2) : "No data";
+            document.getElementById("hum").innerText = data.humidity !== null ? data.humidity.toFixed(2) : "No data";
             document.getElementById("fan").innerText = data.fan ? "ON" : "OFF";
         })
         .catch(err => console.log("Error:", err));
 }
 
+// Refresh every second
 setInterval(updateData, 1000);
 updateData();
 </script>
