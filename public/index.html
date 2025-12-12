@@ -6,89 +6,119 @@
 </head>
 <body>
 
-<h1>ESP32 Live Sensor Data</h1>
+<h1 class="header-title">Welcome to the Live Data of the ESP32 Control</h1>
 
-<div class="container">
-    <div class="box">
-        <div class="bar-container">
-            <div id="temp-bar" class="bar-fill"></div>
+<!-- Sensor panel -->
+<div class="sensor-container">
+
+    <!-- Temperature Card -->
+    <div class="sensor-card">
+        <div class="bar-wrapper">
+            <div id="temp-bar" class="bar"></div>
         </div>
-        <div class="value" id="temp">Loading...</div>
-        <div class="status" id="temp-status"></div>
+
+        <div class="sensor-info">
+            <h2>Temperature</h2>
+            <p id="temp" class="sensor-value">Loading...</p>
+            <p id="temp-time" class="timestamp">Waiting...</p>
+            <p id="temp-limit" class="limit-indicator">Limit: --°C</p>
+            <p id="temp-status" class="status-indicator">Status: --</p>
+        </div>
     </div>
 
-    <div class="box">
-        <div class="bar-container">
-            <div id="hum-bar" class="bar-fill" style="background-color: blue;"></div>
+    <!-- Humidity Card -->
+    <div class="sensor-card">
+        <div class="bar-wrapper">
+            <div id="hum-bar" class="bar hum-bar"></div>
         </div>
-        <div class="value" id="hum">Loading...</div>
+
+        <div class="sensor-info">
+            <h2>Humidity</h2>
+            <p id="hum" class="sensor-value">Loading...</p>
+            <p id="hum-time" class="timestamp">Waiting...</p>
+        </div>
     </div>
+
 </div>
 
-<div class="fan-status">
-    Fan Status: <span id="fan">Loading...</span>
-</div>
+<!-- Activity Log -->
+<h2 class="log-title">Activity Log</h2>
+<div id="log" class="log-box"></div>
 
 <script>
-let lastUpdate = Date.now();
+let lastExceeded = false;
+
+function logEvent(text, type="normal") {
+    const logBox = document.getElementById("log");
+    const entry = document.createElement("p");
+    entry.className = "log-entry " + type;
+    entry.textContent = new Date().toLocaleTimeString() + " - " + text;
+    logBox.prepend(entry);
+}
 
 function updateData() {
     fetch("/api/data")
         .then(res => res.json())
         .then(data => {
-            if (!data.temperature && !data.humidity) return;
-
-            lastUpdate = Date.now();
 
             // Temperature
-            let temp = data.temperature;
-            let temp_limit = data.temp_limit || 30;
-            document.getElementById("temp").innerText = temp.toFixed(1) + " °C";
+            if (data.temperature !== null) {
+                const t = data.temperature.toFixed(2);
+                document.getElementById("temp").innerText = t + " °C";
+                document.getElementById("temp-time").innerText = "Updated: " + new Date().toLocaleTimeString();
 
-            // Status text & color
-            let statusText = "Low";
-            let color = "green";
-            if (temp >= temp_limit) {
-                statusText = "High";
-                color = "red";
-            } else if (temp >= temp_limit / 2) {
-                statusText = "Mid";
-                color = "orange";
+                // Get dynamic limit from ESP32 data
+                const limit = data.limit !== undefined ? data.limit : 30;
+                document.getElementById("temp-limit").innerText = "Limit: " + limit + "°C";
+
+                // Status text
+                const statusElem = document.getElementById("temp-status");
+                if (t > limit) {
+                    statusElem.innerText = "Status: Warning";
+                    statusElem.style.color = "#ff5555";
+                } else {
+                    statusElem.innerText = "Status: Normal";
+                    statusElem.style.color = "#44ff44";
+                }
+
+                // Bar height (0-100%) relative to 40°C
+                let tempPercent = Math.min(t / 40 * 100, 100);
+                document.getElementById("temp-bar").style.height = tempPercent + "%";
+
+                // Logging when crossing the limit
+                if (t > limit && !lastExceeded) {
+                    logEvent("Temperature exceeded limit (" + t + "°C)", "exceeded");
+                    lastExceeded = true;
+                }
+                if (t <= limit && lastExceeded) {
+                    logEvent("Temperature returned to normal (" + t + "°C)", "normal");
+                    lastExceeded = false;
+                }
+            } else {
+                document.getElementById("temp").innerText = "Loading...";
+                document.getElementById("temp-bar").style.height = "0%";
+                document.getElementById("temp-status").innerText = "Status: --";
+                document.getElementById("temp-limit").innerText = "Limit: --°C";
             }
-            document.getElementById("temp-status").innerText = statusText;
-            document.getElementById("temp-bar").style.backgroundColor = color;
-
-            // Fill bar height (relative to max 50°C)
-            let tempHeight = Math.min((temp / 50) * 100, 100);
-            document.getElementById("temp-bar").style.height = tempHeight + "%";
 
             // Humidity
-            let hum = data.humidity;
-            document.getElementById("hum").innerText = hum.toFixed(1) + " %";
-            let humHeight = Math.min((hum / 100) * 100, 100);
-            document.getElementById("hum-bar").style.height = humHeight + "%";
+            if (data.humidity !== null) {
+                const h = data.humidity.toFixed(2);
+                document.getElementById("hum").innerText = h + " %";
+                document.getElementById("hum-time").innerText = "Updated: " + new Date().toLocaleTimeString();
 
-            // Fan status
-            document.getElementById("fan").innerText = data.fan ? "ON" : "OFF";
+                let humPercent = Math.min(h, 100);
+                document.getElementById("hum-bar").style.height = humPercent + "%";
+            } else {
+                document.getElementById("hum").innerText = "Loading...";
+                document.getElementById("hum-bar").style.height = "0%";
+            }
 
         })
         .catch(err => console.log("Error:", err));
 }
 
-// Check if data is stale (>10s)
-function checkLoading() {
-    if (Date.now() - lastUpdate > 10000) {
-        document.getElementById("temp").innerText = "Loading...";
-        document.getElementById("hum").innerText = "Loading...";
-        document.getElementById("fan").innerText = "Loading...";
-        document.getElementById("temp-status").innerText = "";
-        document.getElementById("temp-bar").style.height = "0";
-        document.getElementById("hum-bar").style.height = "0";
-    }
-}
-
 setInterval(updateData, 1000);
-setInterval(checkLoading, 2000);
 updateData();
 </script>
 
