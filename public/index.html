@@ -41,6 +41,12 @@
 
 </div>
 
+<!-- Fan Status -->
+<div class="fan-status-container">
+    <div id="fan-icon" class="fan-icon off"></div>
+    <p id="fan" class="fan-text">Fan: Loading...</p>
+</div>
+
 <!-- Activity Log -->
 <h2 class="log-title">Activity Log</h2>
 <div id="log" class="log-box"></div>
@@ -62,16 +68,14 @@ function updateData() {
         .then(data => {
 
             // Temperature
-            if (data.temperature !== null) {
+            if (data.temperature !== null && data.temperature !== undefined) {
                 const t = data.temperature.toFixed(2);
                 document.getElementById("temp").innerText = t + " °C";
                 document.getElementById("temp-time").innerText = "Updated: " + new Date().toLocaleTimeString();
 
-                // Get dynamic limit from ESP32 data
                 const limit = data.limit !== undefined ? data.limit : 30;
                 document.getElementById("temp-limit").innerText = "Limit: " + limit + "°C";
 
-                // Status text
                 const statusElem = document.getElementById("temp-status");
                 if (t > limit) {
                     statusElem.innerText = "Status: Warning";
@@ -81,11 +85,10 @@ function updateData() {
                     statusElem.style.color = "#44ff44";
                 }
 
-                // Bar height (0-100%) relative to 40°C
                 let tempPercent = Math.min(t / 40 * 100, 100);
                 document.getElementById("temp-bar").style.height = tempPercent + "%";
 
-                // Logging when crossing the limit
+                // Log events only when crossing the limit
                 if (t > limit && !lastExceeded) {
                     logEvent("Temperature exceeded limit (" + t + "°C)", "exceeded");
                     lastExceeded = true;
@@ -102,16 +105,26 @@ function updateData() {
             }
 
             // Humidity
-            if (data.humidity !== null) {
+            if (data.humidity !== null && data.humidity !== undefined) {
                 const h = data.humidity.toFixed(2);
                 document.getElementById("hum").innerText = h + " %";
                 document.getElementById("hum-time").innerText = "Updated: " + new Date().toLocaleTimeString();
-
                 let humPercent = Math.min(h, 100);
                 document.getElementById("hum-bar").style.height = humPercent + "%";
             } else {
                 document.getElementById("hum").innerText = "Loading...";
                 document.getElementById("hum-bar").style.height = "0%";
+            }
+
+            // Fan status
+            if (data.fan !== null && data.fan !== undefined) {
+                const fanStatus = data.fan ? "ON" : "OFF";
+                document.getElementById("fan").innerText = "Fan: " + fanStatus;
+                const icon = document.getElementById("fan-icon");
+                icon.className = data.fan ? "fan-icon on" : "fan-icon off";
+            } else {
+                document.getElementById("fan").innerText = "Fan: Loading...";
+                document.getElementById("fan-icon").className = "fan-icon off";
             }
 
         })

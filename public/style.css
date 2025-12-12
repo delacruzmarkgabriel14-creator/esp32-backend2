@@ -75,10 +75,27 @@ body {
     margin-top: 5px;
 }
 
-.log-title {
-    margin-top: 40px;
+.fan-status-container {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.fan-icon {
+    width: 50px;
+    height: 50px;
+    margin: auto;
+    border-radius: 50%;
     margin-bottom: 10px;
 }
+
+.fan-icon.off { background: #550000; }
+.fan-icon.on { background: #00aa00; animation: spin 1s linear infinite; }
+
+.fan-text { font-size: 20px; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.log-title { margin-top: 40px; margin-bottom: 10px; }
 
 .log-box {
     background: #111;
@@ -88,9 +105,7 @@ body {
     padding: 15px;
 }
 
-.log-entry {
-    margin: 5px 0;
-}
+.log-entry { margin: 5px 0; }
 
 .log-entry.normal { color: #d0d0d0; }
 .log-entry.exceeded { color: #ff4444; }
