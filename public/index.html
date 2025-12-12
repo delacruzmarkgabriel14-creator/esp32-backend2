@@ -2,39 +2,117 @@
 <html>
 <head>
     <title>ESP32 Live Data</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .box { padding: 15px; border: 1px solid #ccc; width: 250px; margin-bottom: 10px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>ESP32 Live Sensor Data</h1>
+<h1 class="header-title">Welcome to the Live Data of the ESP32 Control</h1>
 
-<div class="box">
-    <strong>Temperature:</strong> <span id="temp">Loading...</span> °C
+<!-- Sensor panel -->
+<div class="sensor-container">
+
+    <!-- Temperature Card -->
+    <div class="sensor-card">
+        <div class="bar-wrapper">
+            <div id="temp-bar" class="bar"></div>
+        </div>
+
+        <div class="sensor-info">
+            <h2>Temperature</h2>
+            <p id="temp" class="sensor-value">Loading...</p>
+            <p id="temp-time" class="timestamp">Waiting...</p>
+            <p id="temp-limit" class="limit-indicator">Limit: 30°C</p>
+        </div>
+    </div>
+
+    <!-- Humidity Card -->
+    <div class="sensor-card">
+        <div class="bar-wrapper">
+            <div id="hum-bar" class="bar hum-bar"></div>
+        </div>
+
+        <div class="sensor-info">
+            <h2>Humidity</h2>
+            <p id="hum" class="sensor-value">Loading...</p>
+            <p id="hum-time" class="timestamp">Waiting...</p>
+        </div>
+    </div>
+
 </div>
-<div class="box">
-    <strong>Humidity:</strong> <span id="hum">Loading...</span> %
+
+<!-- Fan Status -->
+<div class="fan-status-container">
+    <div id="fan-icon" class="fan-icon off"></div>
+    <p id="fan" class="fan-text">Fan: Loading...</p>
 </div>
-<div class="box">
-    <strong>Fan Status:</strong> <span id="fan">Loading...</span>
-</div>
+
+<!-- Activity Log -->
+<h2 class="log-title">Activity Log</h2>
+<div id="log" class="log-box"></div>
 
 <script>
+let lastExceeded = false;
+
+function logEvent(text, type="normal") {
+    const logBox = document.getElementById("log");
+    const entry = document.createElement("p");
+
+    entry.className = "log-entry " + type;
+    entry.textContent = new Date().toLocaleTimeString() + " - " + text;
+
+    logBox.prepend(entry);
+}
+
 function updateData() {
     fetch("/api/data")
         .then(res => res.json())
         .then(data => {
-            // Format temperature and humidity to 2 decimal places
-            document.getElementById("temp").innerText = data.temperature !== null ? data.temperature.toFixed(2) : "No data";
-            document.getElementById("hum").innerText = data.humidity !== null ? data.humidity.toFixed(2) : "No data";
-            document.getElementById("fan").innerText = data.fan ? "ON" : "OFF";
+
+            // Temperature
+            if (data.temperature !== null) {
+                const t = data.temperature.toFixed(2);
+                document.getElementById("temp").innerText = t + " °C";
+                document.getElementById("temp-time").innerText = "Updated: " + new Date().toLocaleTimeString();
+
+                // Bar height (scale 0–100)
+                let tempPercent = Math.min(t / 40 * 100, 100);
+                document.getElementById("temp-bar").style.height = tempPercent + "%";
+
+                // Trigger detection
+                if (t > 30 && !lastExceeded) {
+                    logEvent("Temperature exceeded limit (" + t + "°C)", "exceeded");
+                    lastExceeded = true;
+                }
+                if (t <= 30 && lastExceeded) {
+                    logEvent("Temperature returned to normal (" + t + "°C)", "normal");
+                    lastExceeded = false;
+                }
+            }
+
+            // Humidity
+            if (data.humidity !== null) {
+                const h = data.humidity.toFixed(2);
+                document.getElementById("hum").innerText = h + " %";
+                document.getElementById("hum-time").innerText = "Updated: " + new Date().toLocaleTimeString();
+
+                let humPercent = Math.min(h, 100);
+                document.getElementById("hum-bar").style.height = humPercent + "%";
+            }
+
+            // Fan status
+            if (data.fan !== null) {
+                let fanStatus = data.fan ? "ON" : "OFF";
+                document.getElementById("fan").innerText = "Fan: " + fanStatus;
+
+                const icon = document.getElementById("fan-icon");
+                icon.className = data.fan ? "fan-icon on" : "fan-icon off";
+
+                logEvent("Fan turned " + fanStatus, fanStatus === "ON" ? "on" : "off");
+            }
         })
         .catch(err => console.log("Error:", err));
 }
 
-// Refresh every second
 setInterval(updateData, 1000);
 updateData();
 </script>
