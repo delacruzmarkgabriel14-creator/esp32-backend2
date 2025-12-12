@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32 Live Data</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .box { padding: 15px; border: 1px solid #ccc; width: 250px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>ESP32 Live Sensor Data</h1>
+
+<div class="box">
+    <strong>Temperature:</strong> <span id="temp">Loading...</span> °C
+</div>
+<div class="box">
+    <strong>Humidity:</strong> <span id="hum">Loading...</span> %
+</div>
+<div class="box">
+    <strong>Fan Status:</strong> <span id="fan">Loading...</span>
+</div>
+
+<script>
+function updateData() {
+    fetch("/api/data")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("temp").innerText = data.temperature ?? "No data";
+            document.getElementById("hum").innerText = data.humidity ?? "No data";
+            document.getElementById("fan").innerText = data.fan ? "ON" : "OFF";
+        })
+        .catch(err => console.log("Error:", err));
+}
+
+setInterval(updateData, 1000);
+updateData();
+</script>
+
+</body>
+</html>
