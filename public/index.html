@@ -1,45 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32 Live Data</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1 class="header-title">Welcome to the Live Data of the ESP32 Control</h1>
+
+<div class="sensor-container">
+
+    <!-- Temperature -->
+    <div class="sensor-card">
+        <div class="bar-wrapper">
+            <div id="temp-bar" class="bar"></div>
+        </div>
+
+        <div class="sensor-info">
+            <h2>Temperature</h2>
+            <p id="temp" class="sensor-value">Loading...</p>
+            <p id="temp-limit" class="limit-text">Limit: --°C</p>
+            <p id="temp-status" class="status-indicator">Status: --</p>
+        </div>
+    </div>
+
+    <!-- Humidity -->
+    <div class="sensor-card">
+        <div class="bar-wrapper">
+            <div id="hum-bar" class="bar hum-bar"></div>
+        </div>
+
+        <div class="sensor-info">
+            <h2>Humidity</h2>
+            <p id="hum" class="sensor-value">Loading...</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- Fan -->
+<div class="fan-status-container">
+    <div id="fan-icon" class="fan-icon off">
+        <div class="blade"></div>
+        <div class="blade"></div>
+        <div class="blade"></div>
+        <div class="blade"></div>
+    </div>
+    <p id="fan-text">Fan: Loading...</p>
+</div>
+
 <h2 class="log-title">Activity Log</h2>
+
+<!-- Download Logs Button -->
 <button id="download-btn">Download Logs</button>
+
 <div id="log" class="log-box"></div>
 
 <script>
-// Load full history on page load
-function loadLogHistory() {
-    fetch('/logs')
-        .then(r => r.json())
-        .then(logs => {
-            const logDiv = document.getElementById('log');
-            logDiv.innerHTML = '';
-            logs.reverse().forEach(l => {
-                const p = document.createElement('p');
-                p.textContent = new Date(l.time).toLocaleString() + " - " + l.message;
-                logDiv.appendChild(p);
-            });
-        });
+let wasAbove = false;
+
+// Log event locally
+function logEvent(msg, cls) {
+    const p = document.createElement("p");
+    p.className = "log-entry " + cls;
+    p.textContent = new Date().toLocaleTimeString() + " - " + msg;
+    document.getElementById("log").prepend(p);
 }
 
-// Download logs as JSON
-document.getElementById('download-btn').addEventListener('click', () => {
-    fetch('/logs')
+// Download logs.json
+document.getElementById("download-btn").addEventListener("click", () => {
+    fetch("/logs")
         .then(r => r.blob())
         .then(blob => {
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
+            const a = document.createElement("a");
             a.href = url;
-            a.download = 'logs.json';
+            a.download = "logs.json";
             a.click();
             URL.revokeObjectURL(url);
         });
 });
 
-// Call load on page load
-loadLogHistory();
+// Update sensor data
+function updateData() {
+    fetch("/api/data")
+        .then(r => r.json())
+        .then(d => {
 
-// Live updates (existing function)
-function logEvent(msg) {
-    const logDiv = document.getElementById('log');
-    const p = document.createElement('p');
-    p.textContent = new Date().toLocaleTimeString() + " - " + msg;
-    logDiv.prepend(p);
+            /* -------- TEMPERATURE -------- */
+            if (d.temperature === null || d.limit === null) {
+                document.getElementById("temp").innerText = "Loading...";
+                document.getElementById("temp-limit").innerText = "Limit: --°C";
+                document.getElementById("temp-status").innerText = "Status: --";
+                document.getElementById("temp-bar").style.height = "0%";
+            } else {
+                const temp = d.temperature;
+                const limit = d.limit;
+
+                document.getElementById("temp").innerText = temp.toFixed(1) + " °C";
+                document.getElementById("temp-limit").innerText = "Limit: " + limit + "°C";
+
+                const percent = Math.min((temp / limit) * 100, 100);
+                const bar = document.getElementById("temp-bar");
+                bar.style.height = percent + "%";
+
+                if (temp >= limit) {
+                    bar.classList.add("warning");
+                    document.getElementById("temp-status").innerText = "Status: Warning";
+                } else {
+                    bar.classList.remove("warning");
+                    document.getElementById("temp-status").innerText = "Status: Normal";
+                }
+
+                if (temp > limit && !wasAbove) {
+                    logEvent(`Temperature exceeded limit (${temp}°C)`, "exceeded");
+                    wasAbove = true;
+                }
+
+                if (temp < limit && wasAbove) {
+                    logEvent(`Temperature returned to normal (${temp}°C)`, "normal");
+                    wasAbove = false;
+                }
+            }
+
+            /* -------- HUMIDITY -------- */
+            if (d.humidity === null) {
+                document.getElementById("hum").innerText = "Loading...";
+                document.getElementById("hum-bar").style.height = "0%";
+            } else {
+                document.getElementById("hum").innerText = d.humidity.toFixed(1) + " %";
+                document.getElementById("hum-bar").style.height = Math.min(d.humidity, 100) + "%";
+            }
+
+            /* -------- FAN -------- */
+            document.getElementById("fan-text").innerText =
+                "Fan: " + (d.fan ? "ON" : "OFF");
+
+            const fanIcon = document.getElementById("fan-icon");
+            fanIcon.className = d.fan ? "fan-icon on" : "fan-icon off";
+        });
 }
+
+setInterval(updateData, 1000);
+updateData();
 </script>
+
+</body>
+</html>
