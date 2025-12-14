@@ -2,38 +2,45 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 
-const app = express();  // Must be defined first
+const app = express();
 app.use(express.json());
+
+// Serve static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// Path for logs.json
-const logsFile = path.join(__dirname, 'logs.json');
-// Ensure logs.json exists
-if (!fs.existsSync(logsFile)) fs.writeFileSync(logsFile, '[]');
-
 // Latest sensor data
-let latestData = { temperature: null, humidity: null, fan: null };
-let lastAboveLimit = false; // Track previous state for logging
+let latestData = { temperature: null, humidity: null, fan: null, limit: null };
 
-// Helper: append log entry
+// Path for logs.json
+const logsFile = path.join(__dirname, "logs.json");
+
+// Ensure logs.json exists
+if (!fs.existsSync(logsFile)) {
+    fs.writeFileSync(logsFile, "[]");
+}
+
+// Append a log entry with PH local time
 function appendLog(entry) {
     let logs = JSON.parse(fs.readFileSync(logsFile));
-    logs.push({ time: new Date().toISOString(), message: entry });
+    const phTime = new Date().toLocaleString("en-PH", { timeZone: "Asia/Manila" });
+    logs.push({ time: phTime, message: entry });
     fs.writeFileSync(logsFile, JSON.stringify(logs, null, 2));
 }
 
-// GET /logs - serve the JSON log file
-app.get('/logs', (req, res) => {
+// Serve logs.json
+app.get("/logs", (req, res) => {
     res.sendFile(logsFile);
 });
 
-// POST /api/data - receive sensor updates
+// Track last temperature state for crossing detection
+let lastAboveLimit = false;
+
+// Receive sensor data
 app.post("/api/data", (req, res) => {
     const data = req.body;
     latestData = data;
 
-    // Log only when temperature crosses the limit
-    if (data.temperature !== null && data.limit !== undefined) {
+    if (data.temperature !== null && data.limit !== null) {
         if (data.temperature >= data.limit && !lastAboveLimit) {
             appendLog(`Temperature exceeded limit: ${data.temperature}°C`);
             lastAboveLimit = true;
@@ -46,12 +53,12 @@ app.post("/api/data", (req, res) => {
     res.send("Data stored");
 });
 
-// GET /api/data - send latest sensor data
+// Serve latest sensor data
 app.get("/api/data", (req, res) => {
     res.json(latestData);
 });
 
-// Catch-all route
+// Serve index.html for all other routes
 app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
