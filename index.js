@@ -1,45 +1,43 @@
-const express = require("express");
-const path = require("path");
-const app = express();
-app.use(express.json());
+const fs = require('fs');
+const path = require('path');
 
-app.use(express.static(path.join(__dirname, "public")));
+// Path for logs.json
+const logsFile = path.join(__dirname, 'logs.json');
 
-let latestData = { temperature: null, humidity: null, fan: null, temp_limit: 30 };
-let abnormal = false; // flag to track abnormal events
-let logs = []; // store abnormal events
+// Ensure logs.json exists
+if (!fs.existsSync(logsFile)) {
+    fs.writeFileSync(logsFile, '[]');
+}
+
+// Append a log entry
+function appendLog(entry) {
+    let logs = JSON.parse(fs.readFileSync(logsFile));
+    logs.push({ time: new Date().toISOString(), message: entry });
+    fs.writeFileSync(logsFile, JSON.stringify(logs, null, 2));
+}
+
+// Serve logs.json via GET
+app.get('/logs', (req, res) => {
+    res.sendFile(logsFile);
+});
+
+// Modify POST /api/data to log only temp crossings
+let lastAboveLimit = false;
 
 app.post("/api/data", (req, res) => {
     const data = req.body;
     latestData = data;
 
-    // Abnormal temperature logging
-    if (data.temperature !== null && data.temp_limit !== undefined) {
-        if (!abnormal && data.temperature >= data.temp_limit) {
-            abnormal = true;
-            logs.push(`[${new Date().toLocaleString()}] Temperature abnormal started: ${data.temperature}°C`);
-        } else if (abnormal && data.temperature < data.temp_limit) {
-            abnormal = false;
-            logs.push(`[${new Date().toLocaleString()}] Temperature back to normal: ${data.temperature}°C`);
+    // Log crossing events
+    if (data.temperature !== null) {
+        if (data.temperature >= data.limit && !lastAboveLimit) {
+            appendLog(`Temperature exceeded limit: ${data.temperature}°C`);
+            lastAboveLimit = true;
+        } else if (data.temperature < data.limit && lastAboveLimit) {
+            appendLog(`Temperature back to normal: ${data.temperature}°C`);
+            lastAboveLimit = false;
         }
     }
 
-    console.log("Received:", data);
     res.send("Data stored");
 });
-
-app.get("/api/data", (req, res) => {
-    res.json(latestData);
-});
-
-// Optional: get logs
-app.get("/api/logs", (req, res) => {
-    res.json(logs);
-});
-
-app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Server running on port", PORT));
