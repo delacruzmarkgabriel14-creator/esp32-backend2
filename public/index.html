@@ -8,25 +8,25 @@
 
 <h1 class="header-title">Welcome to the Live Data of the ESP32 Control</h1>
 
-<!-- Sensor panel -->
 <div class="sensor-container">
 
-    <!-- Temperature Card -->
+    <!-- Temperature -->
     <div class="sensor-card">
         <div class="bar-wrapper">
+            <div class="limit-line">
+                <span id="limit-text">Limit: --°C</span>
+            </div>
             <div id="temp-bar" class="bar"></div>
         </div>
 
         <div class="sensor-info">
             <h2>Temperature</h2>
             <p id="temp" class="sensor-value">Loading...</p>
-            <p id="temp-time" class="timestamp">Waiting...</p>
-            <p id="temp-limit" class="limit-indicator">Limit: --°C</p>
             <p id="temp-status" class="status-indicator">Status: --</p>
         </div>
     </div>
 
-    <!-- Humidity Card -->
+    <!-- Humidity -->
     <div class="sensor-card">
         <div class="bar-wrapper">
             <div id="hum-bar" class="bar hum-bar"></div>
@@ -35,100 +35,92 @@
         <div class="sensor-info">
             <h2>Humidity</h2>
             <p id="hum" class="sensor-value">Loading...</p>
-            <p id="hum-time" class="timestamp">Waiting...</p>
         </div>
     </div>
 
 </div>
 
-<!-- Fan Status -->
+<!-- Fan -->
 <div class="fan-status-container">
-    <div id="fan-icon" class="fan-icon off"></div>
-    <p id="fan" class="fan-text">Fan: Loading...</p>
+    <div id="fan-icon" class="fan-icon off">
+        <div class="blade"></div>
+        <div class="blade"></div>
+        <div class="blade"></div>
+        <div class="blade"></div>
+    </div>
+    <p id="fan-text">Fan: Loading...</p>
 </div>
 
-<!-- Activity Log -->
 <h2 class="log-title">Activity Log</h2>
 <div id="log" class="log-box"></div>
 
 <script>
-let lastExceeded = false;
+let wasAbove = false;
 
-function logEvent(text, type="normal") {
-    const logBox = document.getElementById("log");
-    const entry = document.createElement("p");
-    entry.className = "log-entry " + type;
-    entry.textContent = new Date().toLocaleTimeString() + " - " + text;
-    logBox.prepend(entry);
+function logEvent(msg, cls) {
+    const p = document.createElement("p");
+    p.className = "log-entry " + cls;
+    p.textContent = new Date().toLocaleTimeString() + " - " + msg;
+    document.getElementById("log").prepend(p);
 }
 
 function updateData() {
     fetch("/api/data")
-        .then(res => res.json())
-        .then(data => {
+        .then(r => r.json())
+        .then(d => {
 
-            // Temperature
-            if (data.temperature !== null && data.temperature !== undefined) {
-                const t = data.temperature.toFixed(2);
-                document.getElementById("temp").innerText = t + " °C";
-                document.getElementById("temp-time").innerText = "Updated: " + new Date().toLocaleTimeString();
-
-                const limit = data.limit !== undefined ? data.limit : 30;
-                document.getElementById("temp-limit").innerText = "Limit: " + limit + "°C";
-
-                const statusElem = document.getElementById("temp-status");
-                if (t > limit) {
-                    statusElem.innerText = "Status: Warning";
-                    statusElem.style.color = "#ff5555";
-                } else {
-                    statusElem.innerText = "Status: Normal";
-                    statusElem.style.color = "#44ff44";
-                }
-
-                let tempPercent = Math.min(t / 40 * 100, 100);
-                document.getElementById("temp-bar").style.height = tempPercent + "%";
-
-                // Log events only when crossing the limit
-                if (t > limit && !lastExceeded) {
-                    logEvent("Temperature exceeded limit (" + t + "°C)", "exceeded");
-                    lastExceeded = true;
-                }
-                if (t <= limit && lastExceeded) {
-                    logEvent("Temperature returned to normal (" + t + "°C)", "normal");
-                    lastExceeded = false;
-                }
-            } else {
+            /* -------- TEMPERATURE -------- */
+            if (d.temperature === null || d.limit === null) {
                 document.getElementById("temp").innerText = "Loading...";
                 document.getElementById("temp-bar").style.height = "0%";
                 document.getElementById("temp-status").innerText = "Status: --";
-                document.getElementById("temp-limit").innerText = "Limit: --°C";
+                document.getElementById("limit-text").innerText = "Limit: --°C";
+            } else {
+                const temp = d.temperature;
+                const limit = d.limit;
+
+                document.getElementById("temp").innerText = temp.toFixed(1) + " °C";
+                document.getElementById("limit-text").innerText = "Limit: " + limit + "°C";
+
+                const percent = Math.min((temp / limit) * 100, 100);
+                const bar = document.getElementById("temp-bar");
+                bar.style.height = percent + "%";
+
+                if (temp >= limit) {
+                    bar.classList.add("warning");
+                    document.getElementById("temp-status").innerText = "Status: Warning";
+                } else {
+                    bar.classList.remove("warning");
+                    document.getElementById("temp-status").innerText = "Status: Normal";
+                }
+
+                if (temp > limit && !wasAbove) {
+                    logEvent(`Temperature exceeded limit (${temp}°C)`, "exceeded");
+                    wasAbove = true;
+                }
+
+                if (temp < limit && wasAbove) {
+                    logEvent(`Temperature returned to normal (${temp}°C)`, "normal");
+                    wasAbove = false;
+                }
             }
 
-            // Humidity
-            if (data.humidity !== null && data.humidity !== undefined) {
-                const h = data.humidity.toFixed(2);
-                document.getElementById("hum").innerText = h + " %";
-                document.getElementById("hum-time").innerText = "Updated: " + new Date().toLocaleTimeString();
-                let humPercent = Math.min(h, 100);
-                document.getElementById("hum-bar").style.height = humPercent + "%";
-            } else {
+            /* -------- HUMIDITY -------- */
+            if (d.humidity === null) {
                 document.getElementById("hum").innerText = "Loading...";
                 document.getElementById("hum-bar").style.height = "0%";
-            }
-
-            // Fan status
-            if (data.fan !== null && data.fan !== undefined) {
-                const fanStatus = data.fan ? "ON" : "OFF";
-                document.getElementById("fan").innerText = "Fan: " + fanStatus;
-                const icon = document.getElementById("fan-icon");
-                icon.className = data.fan ? "fan-icon on" : "fan-icon off";
             } else {
-                document.getElementById("fan").innerText = "Fan: Loading...";
-                document.getElementById("fan-icon").className = "fan-icon off";
+                document.getElementById("hum").innerText = d.humidity.toFixed(1) + " %";
+                document.getElementById("hum-bar").style.height = Math.min(d.humidity, 100) + "%";
             }
 
-        })
-        .catch(err => console.log("Error:", err));
+            /* -------- FAN -------- */
+            document.getElementById("fan-text").innerText =
+                "Fan: " + (d.fan ? "ON" : "OFF");
+
+            const fanIcon = document.getElementById("fan-icon");
+            fanIcon.className = d.fan ? "fan-icon on" : "fan-icon off";
+        });
 }
 
 setInterval(updateData, 1000);

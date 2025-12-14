@@ -2,7 +2,6 @@ body {
     background: #000;
     color: #fff;
     font-family: Arial, sans-serif;
-    margin: 0;
     padding: 20px;
 }
 
@@ -15,7 +14,6 @@ body {
     display: flex;
     justify-content: center;
     gap: 25px;
-    margin-bottom: 40px;
 }
 
 .sensor-card {
@@ -28,84 +26,113 @@ body {
 }
 
 .bar-wrapper {
-    width: 15px;
-    height: 150px;
+    width: 18px;
+    height: 160px;
     background: #222;
     border-radius: 10px;
-    overflow: hidden;
+    position: relative;
     display: flex;
     align-items: flex-end;
+    overflow: hidden;
 }
 
 .bar {
     width: 100%;
-    background: #00aaff;
     height: 0%;
-    transition: height 0.5s ease;
+    background: #00aaff;
+    transition: height 0.6s ease;
+}
+
+.bar.warning {
+    background: #ff4444;
 }
 
 .hum-bar {
     background: #00ffc8;
 }
 
-.sensor-info h2 {
-    margin: 0;
-    font-size: 18px;
+.limit-line {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    border-top: 1px solid #ff4444;
+    font-size: 10px;
+    color: #ff4444;
+    text-align: center;
+}
+
+.limit-line span {
+    position: relative;
+    top: -12px;
 }
 
 .sensor-value {
     font-size: 26px;
-    margin: 5px 0;
-}
-
-.timestamp {
-    font-size: 12px;
-    color: #888;
-}
-
-.limit-indicator {
-    margin-top: 10px;
-    font-size: 14px;
-    color: #ff5555;
 }
 
 .status-indicator {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 14px;
     margin-top: 5px;
 }
 
 .fan-status-container {
     text-align: center;
-    margin-bottom: 40px;
+    margin: 40px 0;
 }
 
 .fan-icon {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     margin: auto;
+    position: relative;
     border-radius: 50%;
-    margin-bottom: 10px;
+    background: #222;
 }
 
-.fan-icon.off { background: #550000; }
-.fan-icon.on { background: #00aa00; animation: spin 1s linear infinite; }
+.blade {
+    position: absolute;
+    width: 6px;
+    height: 25px;
+    background: #aaa;
+    top: 5px;
+    left: 27px;
+    border-radius: 3px;
+    transform-origin: 3px 25px;
+}
 
-.fan-text { font-size: 20px; }
+.blade:nth-child(2) { transform: rotate(90deg); }
+.blade:nth-child(3) { transform: rotate(180deg); }
+.blade:nth-child(4) { transform: rotate(270deg); }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+.fan-icon.on {
+    animation: spin 2s linear infinite;
+}
 
-.log-title { margin-top: 40px; margin-bottom: 10px; }
+.fan-icon.off {
+    opacity: 0.4;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.log-title {
+    margin-top: 30px;
+}
 
 .log-box {
     background: #111;
+    padding: 15px;
     height: 200px;
     overflow-y: auto;
     border-radius: 8px;
-    padding: 15px;
 }
 
-.log-entry { margin: 5px 0; }
+.log-entry.exceeded {
+    color: #ff5555;
+}
 
-.log-entry.normal { color: #d0d0d0; }
-.log-entry.exceeded { color: #ff4444; }
+.log-entry.normal {
+    color: #aaa;
+}
