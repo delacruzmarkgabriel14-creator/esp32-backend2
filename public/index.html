@@ -13,15 +13,13 @@
     <!-- Temperature -->
     <div class="sensor-card">
         <div class="bar-wrapper">
-            <div class="limit-line">
-                <span id="limit-text">Limit: --°C</span>
-            </div>
             <div id="temp-bar" class="bar"></div>
         </div>
 
         <div class="sensor-info">
             <h2>Temperature</h2>
             <p id="temp" class="sensor-value">Loading...</p>
+            <p id="temp-limit" class="limit-text">Limit: --°C</p>
             <p id="temp-status" class="status-indicator">Status: --</p>
         </div>
     </div>
@@ -72,15 +70,15 @@ function updateData() {
             /* -------- TEMPERATURE -------- */
             if (d.temperature === null || d.limit === null) {
                 document.getElementById("temp").innerText = "Loading...";
-                document.getElementById("temp-bar").style.height = "0%";
+                document.getElementById("temp-limit").innerText = "Limit: --°C";
                 document.getElementById("temp-status").innerText = "Status: --";
-                document.getElementById("limit-text").innerText = "Limit: --°C";
+                document.getElementById("temp-bar").style.height = "0%";
             } else {
                 const temp = d.temperature;
                 const limit = d.limit;
 
                 document.getElementById("temp").innerText = temp.toFixed(1) + " °C";
-                document.getElementById("limit-text").innerText = "Limit: " + limit + "°C";
+                document.getElementById("temp-limit").innerText = "Limit: " + limit + "°C";
 
                 const percent = Math.min((temp / limit) * 100, 100);
                 const bar = document.getElementById("temp-bar");
